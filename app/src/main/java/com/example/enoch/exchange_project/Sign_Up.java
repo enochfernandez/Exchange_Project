@@ -2,13 +2,12 @@ package com.example.enoch.exchange_project;
 
 import android.app.LoaderManager;
 import android.content.ContentValues;
-import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.text.format.Time;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -18,19 +17,16 @@ import com.example.enoch.exchange_project.ExchangeDataTablesReaderConstant.Membe
 
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.Timer;
 
 public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private EditText name,address,city,postCode,email,password;
     private CheckBox editCheckBox;
-    private ExchangeProvider myProvider;
+    private String emailText, passwordText, cityText, addressText, postCodeText, nameText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign__up);
-
-        myProvider = new ExchangeProvider();
 
         name = (EditText) findViewById(R.id.name);
         address = (EditText) findViewById(R.id.address);
@@ -54,12 +50,12 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
         password.setError(null);
 
         // Store values at the time of the login attempt.
-        String emailText = email.getText().toString();
-        String passwordText = password.getText().toString();
-        String cityText = city.getText().toString();
-        String postCodeText = postCode.getText().toString();
-        String nameText = name.getText().toString();
-        String addressText = address.getText().toString();
+        emailText = email.getText().toString();
+        passwordText = password.getText().toString();
+        cityText = city.getText().toString();
+        postCodeText = postCode.getText().toString();
+        nameText = name.getText().toString();
+        addressText = address.getText().toString();
 
 
         boolean cancel = false;
@@ -118,23 +114,10 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
             focusView.requestFocus();
         } else {
 
-            //Set time for firstTime login
-            String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
 
-            //inserting the data into the database
-            ContentValues values = new ContentValues();
-            values.put(Members.COLUMN_name,nameText);
-            values.put(Members.COLUMN_address, addressText);
-            values.put(Members.COLUMN_postcode,postCodeText);
-            values.put(Members.COLUMN_city , cityText);
-            values.put(Members.COLUMN_email, emailText);
-            values.put(Members.COLUMN_password, passwordText);
-            values.put(Members.COLUMN_last_login_date, currentDateTimeString);
+            //getLoaderManager().initLoader(0,null,this);
 
-            getContentResolver().insert(ExchangeProvider.CONTENT_URI_TABLE_MEMBERS, values);
-            Toast.makeText(this, "I was able to insert", Toast.LENGTH_SHORT).show();
-
-
+            getLoaderManager().restartLoader(0, null, this);
 
         }
     }
@@ -149,13 +132,54 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
         return credentials.length() > 4;
     }
 
+    //A loader to check for duplication
     @Override
     public Loader onCreateLoader(int id, Bundle args) {
-        return null;
+
+        String[] projection = {
+                Members.COLUMN_name,
+                Members.COLUMN_address,
+                Members.COLUMN_postcode,
+                Members.COLUMN_city,
+                Members.COLUMN_email,
+                Members.COLUMN_password,
+                Members.COLUMN_last_login_date
+        };
+
+        String[] argsSelection = {
+                emailText, passwordText
+        };
+        String select = Members.COLUMN_email + " = ? AND " + Members.COLUMN_password + " = ? ";
+
+        CursorLoader mCursor = new CursorLoader(this, ExchangeProvider.CONTENT_URI_TABLE_MEMBERS, projection, select, argsSelection, null);
+        return mCursor;
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        if (data == null) {
+            //Error occured
+            Toast.makeText(this, "database returned null", Toast.LENGTH_SHORT).show();
+        } else if (data.getCount() == 1) {
+            Toast.makeText(this, "UserName and Password already used", Toast.LENGTH_SHORT).show();
+        } else {
+            //Set time for firstTime login
+            String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
+
+            //inserting the data into the database
+            ContentValues values = new ContentValues();
+            values.put(Members.COLUMN_name, nameText);
+            values.put(Members.COLUMN_address, addressText);
+            values.put(Members.COLUMN_postcode, postCodeText);
+            values.put(Members.COLUMN_city, cityText);
+            values.put(Members.COLUMN_email, emailText);
+            values.put(Members.COLUMN_password, passwordText);
+            values.put(Members.COLUMN_last_login_date, currentDateTimeString);
+
+            getContentResolver().insert(ExchangeProvider.CONTENT_URI_TABLE_MEMBERS, values);
+            Toast.makeText(this, "I was able to insert", Toast.LENGTH_SHORT).show();
+        }
+
 
     }
 

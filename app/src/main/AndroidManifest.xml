@@ -25,11 +25,9 @@
         <activity android:name=".Sign_Up"></activity>
 
         <provider
-            android:authorities="com.example.enoch.exchange_project.exchangeprovider"
             android:name=".ExchangeProvider"
+            android:authorities="com.example.enoch.exchange_project.exchangeprovider"
             android:exported="false" />
     </application>
-
-
 
 </manifest>

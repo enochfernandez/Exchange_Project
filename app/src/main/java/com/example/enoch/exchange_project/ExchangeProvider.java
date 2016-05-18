@@ -23,10 +23,11 @@ public class ExchangeProvider extends ContentProvider {
 
     private static final UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
-    private SQLiteDatabase database;
     static {
         uriMatcher.addURI(AUTHORITY , BASE_PATH_TABLE_MEMBERS, TABLE_MEMBERS_MATCHER);
     }
+
+    private SQLiteDatabase database;
 
     @Override
     public boolean onCreate() {
@@ -39,7 +40,12 @@ public class ExchangeProvider extends ContentProvider {
     @Nullable
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        return null;
+        Cursor mCursor = null;
+        switch (uriMatcher.match(uri)) {
+            case TABLE_MEMBERS_MATCHER:
+                mCursor = database.query(ExchangeDataTablesReaderConstant.Members.TABLE_NAME_members, projection, selection, selectionArgs, null, null, null);
+        }
+        return mCursor;
     }
 
     @Nullable
