@@ -22,12 +22,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Sign_Up"></activity>
+        <activity android:name=".Sign_Up" />
 
         <provider
             android:name=".ExchangeProvider"
             android:authorities="com.example.enoch.exchange_project.exchangeprovider"
             android:exported="false" />
+
+        <activity
+            android:name=".HomeScreen"
+            android:label="@string/title_activity_home_screen"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>
