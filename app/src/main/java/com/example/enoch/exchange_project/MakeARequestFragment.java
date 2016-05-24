@@ -12,7 +12,7 @@ import android.view.ViewGroup;
  * A simple {@link Fragment} subclass.
  */
 public class MakeARequestFragment extends Fragment {
-    String members_id, title, description, skills_ids;
+    String members_id, title, description, skills_ids, create_date;
 
     public MakeARequestFragment() {
         // Required empty public constructor
