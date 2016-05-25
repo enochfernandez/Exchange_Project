@@ -124,6 +124,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             Toast.makeText(this, "Email or Password not found", Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, "I found a record so I would log in", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
         }
     }
 
@@ -137,6 +139,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         Intent intent = new Intent(this, Sign_Up.class);
         startActivity(intent);
     }
+
 
 
 }
