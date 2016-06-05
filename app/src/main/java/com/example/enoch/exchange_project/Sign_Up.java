@@ -1,28 +1,47 @@
 package com.example.enoch.exchange_project;
 
+import android.Manifest;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Loader;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.enoch.exchange_project.ExchangeDataTablesReaderConstant.Members;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private EditText name,address,city,postCode,email,password;
     private CheckBox editCheckBox;
     private String emailText, passwordText, cityText, addressText, postCodeText, nameText;
+    private Button addressButton;
+    LocationManager lom;
+    ButtonForAddress gps;
+    public static final int MY_PERMISSION_REQUEST_ACCESS_FINE_LOCATION = 12;
+    double longi, lati;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,6 +54,26 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
         email = (EditText) findViewById(R.id.email);
         password = (EditText) findViewById(R.id.password);
         editCheckBox = (CheckBox) findViewById(R.id.editProfile);
+        addressButton = (Button) findViewById(R.id.getAddressButton);
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this,"You can now use the get address button!", Toast.LENGTH_SHORT).show();
+        } else{
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
+
+        }
+        addressButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                // TODO Auto-generated method stub
+                gps = new ButtonForAddress(Sign_Up.this);
+                longi = gps.getLongitude();
+                lati = gps.getLatitude();
+                Toast.makeText(Sign_Up.this, "Longitude is:" + longi + "Latidute is:" + lati, Toast.LENGTH_LONG).show();
+                buttonGoGetAddress(lati, longi);
+                }
+        });
 
 
     }
@@ -188,4 +227,63 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
     public void onLoaderReset(Loader loader) {
 
     }
+
+
+    public void buttonGoGetAddress(double longitude, double latitude) {
+        double long1,lati1;
+        long1 = longitude;
+        lati1 = latitude;
+        if(lati1>0 && long1>0)
+        {
+            Geocoder geocode = new Geocoder(Sign_Up.this, Locale.getDefault());
+            List<Address> addresses;
+
+            try {
+                addresses = geocode.getFromLocation(latitude,longitude, 1);
+
+                String Address = addresses.get(0).getAddressLine(0);
+                String City = addresses.get(0).getLocality();
+
+                address.setText(Address);
+                city.setText(City);
+
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }//if closing. . .
+        else
+        {
+            Toast.makeText(this, "No Value", Toast.LENGTH_LONG).show();
+        }
+
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSION_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                    Toast.makeText(this, "Permission granted!", Toast.LENGTH_SHORT).show();
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    Toast.makeText(this, "Permission denied! You can't use the GET ADDRESS button", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
 }

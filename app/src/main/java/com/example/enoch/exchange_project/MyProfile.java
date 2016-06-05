@@ -11,6 +11,7 @@ public class MyProfile extends AppCompatActivity {
     Button profileButton;
     EditText bio;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
