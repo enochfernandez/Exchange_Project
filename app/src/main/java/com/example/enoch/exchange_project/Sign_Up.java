@@ -4,14 +4,18 @@ import android.Manifest;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.Intent;
 import android.content.Loader;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -23,7 +27,15 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.example.enoch.exchange_project.ExchangeDataTablesReaderConstant.Members;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -33,14 +45,15 @@ import java.util.Locale;
 
 public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
-    private EditText name,address,city,postCode,email,password;
+    private EditText name, address, city, postCode, email, password;
     private CheckBox editCheckBox;
     private String emailText, passwordText, cityText, addressText, postCodeText, nameText;
+    //By JCTubio
     private Button addressButton;
-    LocationManager lom;
-    ButtonForAddress gps;
-    public static final int MY_PERMISSION_REQUEST_ACCESS_FINE_LOCATION = 12;
-    double longi, lati;
+    private LocationManager locationManager;
+    private LocationListener locationListener;
+    private RequestQueue requestQueue;
+    //JCTubio until here
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,28 +67,94 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
         email = (EditText) findViewById(R.id.email);
         password = (EditText) findViewById(R.id.password);
         editCheckBox = (CheckBox) findViewById(R.id.editProfile);
-        addressButton = (Button) findViewById(R.id.getAddressButton);
-        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this,"You can now use the get address button!", Toast.LENGTH_SHORT).show();
-        } else{
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MY_PERMISSION_REQUEST_ACCESS_FINE_LOCATION);
 
-        }
-        addressButton.setOnClickListener(new View.OnClickListener() {
+        //By JCTubio
+        addressButton = (Button) findViewById(R.id.getAddressButton);
+
+        requestQueue = Volley.newRequestQueue(this);
+
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        locationListener = new LocationListener() {
 
             @Override
-            public void onClick(View arg0) {
-                // TODO Auto-generated method stub
-                gps = new ButtonForAddress(Sign_Up.this);
-                longi = gps.getLongitude();
-                lati = gps.getLatitude();
-                Toast.makeText(Sign_Up.this, "Longitude is:" + longi + "Latidute is:" + lati, Toast.LENGTH_LONG).show();
-                buttonGoGetAddress(lati, longi);
+            public void onLocationChanged(Location location) {
+                String jsoncommand = "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + location.getLatitude() + "," + location.getLongitude() + "&key=AIzaSyAK2CQOHIsrRLCyLckwSNJTneqAwbZk7ks";
+                JsonObjectRequest request = new JsonObjectRequest(jsoncommand, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+
+                        try {
+                            String streetString = "" + response.getJSONArray("results").getJSONObject(0).getJSONArray("address_components").getJSONObject(1).getString("long_name") + " " + response.getJSONArray("results").getJSONObject(0).getJSONArray("address_components").getJSONObject(0).getString("long_name");
+                            String cityString = "" + response.getJSONArray("results").getJSONObject(0).getJSONArray("address_components").getJSONObject(3).getString("long_name");
+                            String postcodeString = "" + response.getJSONArray("results").getJSONObject(0).getJSONArray("address_components").getJSONObject(7).getString("long_name");
+                            address.setText(streetString);
+                            city.setText(cityString);
+                            postCode.setText(postcodeString);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+
+                    }
+                });
+                requestQueue.add(request);
+            }
+
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            }
+        };
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, 10);
+            }
+            return;
+        } else {
+            configureButton();
+        }
+
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        switch (requestCode) {
+            case 10:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    configureButton();
+                return;
+        }
+    }
+
+    private void configureButton() {
+        addressButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(Sign_Up.this, "Requesting address from server, this might take a few seconds", Toast.LENGTH_LONG).show();
+                if (ActivityCompat.checkSelfPermission(Sign_Up.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(Sign_Up.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                    return;
                 }
+                locationManager.requestLocationUpdates("gps", 5000, 50, locationListener);
+            }
         });
-
-
     }
 
     //dont forget to write comment
@@ -229,61 +308,5 @@ public class Sign_Up extends AppCompatActivity implements LoaderManager.LoaderCa
     }
 
 
-    public void buttonGoGetAddress(double longitude, double latitude) {
-        double long1,lati1;
-        long1 = longitude;
-        lati1 = latitude;
-        if(lati1>0 && long1>0)
-        {
-            Geocoder geocode = new Geocoder(Sign_Up.this, Locale.getDefault());
-            List<Address> addresses;
-
-            try {
-                addresses = geocode.getFromLocation(latitude,longitude, 1);
-
-                String Address = addresses.get(0).getAddressLine(0);
-                String City = addresses.get(0).getLocality();
-
-                address.setText(Address);
-                city.setText(City);
-
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }//if closing. . .
-        else
-        {
-            Toast.makeText(this, "No Value", Toast.LENGTH_LONG).show();
-        }
-
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[], @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSION_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                    Toast.makeText(this, "Permission granted!", Toast.LENGTH_SHORT).show();
-
-                } else {
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    Toast.makeText(this, "Permission denied! You can't use the GET ADDRESS button", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
-        }
-    }
 
 }
